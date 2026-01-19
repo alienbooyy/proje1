@@ -179,6 +179,15 @@ SPENTA thermal printer veya uyumlu USB yazıcılar desteklenir.
 - Şifreyi `config.json` dosyasından değiştirin
 - Veritabanı dosyası `data/` klasöründe saklanır (git'e commit edilmez)
 
+### Güvenlik Notları
+
+**Önemli**: Bu sistem yerel ağda offline kullanım için tasarlanmıştır.
+
+- **Rate Limiting**: API endpoints'lerde rate limiting bulunmamaktadır. Sistem yerel ağda güvenilir kullanıcılar için tasarlanmıştır.
+- **HTTPS**: Yerel kullanım için HTTP kullanılır. Genel ağda kullanım için reverse proxy (nginx/Apache) ile HTTPS yapılandırması önerilir.
+- **Şifre Güvenliği**: Admin şifresi config dosyasında düz metin olarak saklanır. Üretim ortamında environment variable kullanımı önerilir.
+- **Ağ Erişimi**: Sistemi sadece güvenilir yerel ağda çalıştırın. Firewall kuralları ile dış erişimi engelleyin.
+
 ## 📄 Lisans
 
 Bu proje özel kullanım içindir.
