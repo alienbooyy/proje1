@@ -4,6 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
+const ExcelJS = require("exceljs");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -104,10 +105,31 @@ db.serialize(() => {
       FOREIGN KEY(order_id) REFERENCES orders(id)
     )`
   );
+
+  db.run(
+    `CREATE TABLE IF NOT EXISTS activity_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      action TEXT NOT NULL,
+      details TEXT,
+      created_at TEXT NOT NULL
+    )`
+  );
 });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+// Activity logging helper
+function logActivity(action, details = null) {
+  const logDetails = details ? JSON.stringify(details) : null;
+  db.run(
+    "INSERT INTO activity_logs (action, details, created_at) VALUES (?, ?, ?)",
+    [action, logDetails, now()],
+    (err) => {
+      if (err) console.error("Activity log error:", err.message);
+    }
+  );
+}
 
 const now = () => new Date().toISOString();
 
@@ -145,6 +167,7 @@ app.post("/api/tables", (req, res) => {
     [name, now()],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
+      logActivity("table_created", { id: this.lastID, name });
       res.json({ id: this.lastID, name });
     }
   );
@@ -156,6 +179,81 @@ app.delete("/api/tables/:id", (req, res) => {
     res.json({ ok: true });
   });
 });
+
+app.put("/api/tables/:id", (req, res) => {
+  const { name } = req.body || {};
+  if (!name) return res.status(400).json({ error: "Masa adı gerekli" });
+  db.run("UPDATE tables SET name = ? WHERE id = ?", [name, req.params.id], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ ok: true });
+  });
+});
+
+app.post("/api/tables/:id/merge", (req, res) => {
+  const { target_table_id } = req.body || {};
+  if (!target_table_id) return res.status(400).json({ error: "Hedef masa gerekli" });
+  
+  // Get source table order
+  const sourceTableId = req.params.id;
+  db.get(
+    "SELECT * FROM orders WHERE table_id = ? AND status = 'open'",
+    [sourceTableId],
+    (err, sourceOrder) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!sourceOrder) return res.status(404).json({ error: "Kaynak masada açık sipariş yok" });
+      
+      // Get or create target order
+      db.get(
+        "SELECT * FROM orders WHERE table_id = ? AND status = 'open'",
+        [target_table_id],
+        (err2, targetOrder) => {
+          if (err2) return res.status(500).json({ error: err2.message });
+          
+          if (targetOrder) {
+            // Move all items from source to target
+            db.run(
+              "UPDATE order_items SET order_id = ? WHERE order_id = ?",
+              [targetOrder.id, sourceOrder.id],
+              (err3) => {
+                if (err3) return res.status(500).json({ error: err3.message });
+                
+                // Update target order total
+                db.run(
+                  "UPDATE orders SET total = total + ? WHERE id = ?",
+                  [sourceOrder.total, targetOrder.id],
+                  (err4) => {
+                    if (err4) return res.status(500).json({ error: err4.message });
+                    
+                    // Close source order
+                    db.run(
+                      "UPDATE orders SET status = 'merged', closed_at = ? WHERE id = ?",
+                      [now(), sourceOrder.id],
+                      (err5) => {
+                        if (err5) return res.status(500).json({ error: err5.message });
+                        res.json({ ok: true, message: "Masalar birleştirildi" });
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          } else {
+            // No target order, just move the source order to target table
+            db.run(
+              "UPDATE orders SET table_id = ? WHERE id = ?",
+              [target_table_id, sourceOrder.id],
+              (err3) => {
+                if (err3) return res.status(500).json({ error: err3.message });
+                res.json({ ok: true, message: "Sipariş taşındı" });
+              }
+            );
+          }
+        }
+      );
+    }
+  );
+});
+
 
 app.get("/api/products", (_req, res) => {
   db.all("SELECT * FROM products WHERE active = 1 ORDER BY name ASC", [], (err, rows) => {
@@ -172,6 +270,7 @@ app.post("/api/products", (req, res) => {
     [name, price, now()],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
+      logActivity("product_created", { id: this.lastID, name, price });
       res.json({ id: this.lastID, name, price });
     }
   );
@@ -289,6 +388,7 @@ app.post("/api/orders/:id/payments", (req, res) => {
     [req.params.id, method, amount, now()],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
+      logActivity("payment_received", { order_id: req.params.id, method, amount });
       res.json({ id: this.lastID });
     }
   );
@@ -300,6 +400,7 @@ app.post("/api/orders/:id/close", (req, res) => {
     [now(), req.params.id],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
+      logActivity("order_closed", { order_id: req.params.id });
       res.json({ ok: true });
     }
   );
@@ -430,6 +531,175 @@ app.post("/api/stocks", (req, res) => {
   );
 });
 
+// Activity logs endpoint
+app.get("/api/logs", (req, res) => {
+  const limit = parseInt(req.query.limit) || 100;
+  db.all(
+    "SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT ?",
+    [limit],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
+});
+
 app.listen(PORT, () => {
   console.log(`POS server running on http://localhost:${PORT}`);
 });
+
+// Printer endpoints
+app.post("/api/orders/:id/print", (req, res) => {
+  const orderId = req.params.id;
+  
+  // Get order details
+  const sql = `
+    SELECT o.*, t.name as table_name
+    FROM orders o
+    JOIN tables t ON t.id = o.table_id
+    WHERE o.id = ?
+  `;
+  
+  db.get(sql, [orderId], (err, order) => {
+    if (err || !order) return res.status(404).json({ error: "Sipariş bulunamadı" });
+    
+    // Get order items
+    const itemsSql = `
+      SELECT oi.*, p.name as product_name
+      FROM order_items oi
+      JOIN products p ON p.id = oi.product_id
+      WHERE oi.order_id = ?
+    `;
+    
+    db.all(itemsSql, [orderId], (err2, items) => {
+      if (err2) return res.status(500).json({ error: err2.message });
+      
+      // Generate receipt text
+      const receipt = generateReceipt(order, items);
+      
+      // Try to print to configured printers
+      let printed = false;
+      if (config.printers.kitchen.enabled) {
+        try {
+          fs.writeFileSync(config.printers.kitchen.port, receipt);
+          printed = true;
+        } catch (e) {
+          console.error("Kitchen printer error:", e.message);
+        }
+      }
+      
+      if (config.printers.bakery.enabled) {
+        try {
+          fs.writeFileSync(config.printers.bakery.port, receipt);
+          printed = true;
+        } catch (e) {
+          console.error("Bakery printer error:", e.message);
+        }
+      }
+      
+      if (printed) {
+        res.json({ ok: true, message: "Yazdırma başarılı" });
+      } else {
+        // Log receipt to console if no printer is available
+        console.log("Receipt:\n", receipt);
+        res.json({ ok: true, message: "Yazıcı yapılandırılmamış (konsola yazdırıldı)" });
+      }
+    });
+  });
+});
+
+// Excel export endpoint
+app.get("/api/reports/export", async (req, res) => {
+  const from = req.query.from;
+  const to = req.query.to;
+  if (!from || !to) return res.status(400).json({ error: "from ve to gerekli" });
+  
+  try {
+    const workbook = new ExcelJS.Workbook();
+    
+    // Summary sheet
+    const summarySheet = workbook.addWorksheet('Özet');
+    const summarySql = `
+      SELECT
+        COUNT(DISTINCT o.id) as order_count,
+        SUM(p.amount) as total_revenue
+      FROM orders o
+      JOIN payments p ON p.order_id = o.id
+      WHERE date(p.paid_at) BETWEEN date(?) AND date(?)
+    `;
+    
+    const summary = await new Promise((resolve, reject) => {
+      db.get(summarySql, [from, to], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+    
+    summarySheet.addRow(['Tarih Aralığı', `${from} - ${to}`]);
+    summarySheet.addRow(['Toplam Sipariş', summary.order_count || 0]);
+    summarySheet.addRow(['Toplam Gelir', (summary.total_revenue || 0).toFixed(2) + ' ₺']);
+    
+    // Products sheet
+    const productsSheet = workbook.addWorksheet('Ürünler');
+    const productsSql = `
+      SELECT p.name, SUM(oi.qty) as qty, SUM(oi.qty * oi.price) as revenue
+      FROM order_items oi
+      JOIN products p ON p.id = oi.product_id
+      JOIN orders o ON o.id = oi.order_id
+      WHERE o.status = 'closed' AND date(o.closed_at) BETWEEN date(?) AND date(?)
+      GROUP BY p.id
+      ORDER BY revenue DESC
+    `;
+    
+    const products = await new Promise((resolve, reject) => {
+      db.all(productsSql, [from, to], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+    
+    productsSheet.addRow(['Ürün', 'Adet', 'Gelir']);
+    products.forEach(p => {
+      productsSheet.addRow([p.name, p.qty, p.revenue.toFixed(2) + ' ₺']);
+    });
+    
+    // Send file
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=rapor-${from}-${to}.xlsx`);
+    
+    await workbook.xlsx.write(res);
+    res.end();
+    
+  } catch (error) {
+    console.error("Excel export error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Helper function to generate receipt text
+function generateReceipt(order, items) {
+  let receipt = "\n";
+  receipt += "================================\n";
+  receipt += "       RESTAURANT POS           \n";
+  receipt += "================================\n";
+  receipt += `Masa: ${order.table_name}\n`;
+  receipt += `Sipariş No: ${order.id}\n`;
+  receipt += `Tarih: ${new Date(order.opened_at).toLocaleString('tr-TR')}\n`;
+  receipt += "--------------------------------\n";
+  
+  items.forEach(item => {
+    const line = `${item.qty}x ${item.product_name}`;
+    const price = `${(item.qty * item.price).toFixed(2)} ₺`;
+    const spaces = 32 - line.length - price.length;
+    receipt += line + " ".repeat(Math.max(1, spaces)) + price + "\n";
+  });
+  
+  receipt += "--------------------------------\n";
+  receipt += `TOPLAM:${" ".repeat(16)}${order.total.toFixed(2)} ₺\n`;
+  receipt += "================================\n";
+  receipt += "      Afiyet Olsun!            \n";
+  receipt += "================================\n\n";
+  
+  return receipt;
+}
+
