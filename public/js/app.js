@@ -493,6 +493,13 @@ async function loadTableManagement() {
         `<option value="${t.id}">${t.name}</option>`
     ).join('');
     
+    // Update merge selects
+    const mergeOptions = allTables.map(t => 
+        `<option value="${t.id}">${t.name}</option>`
+    ).join('');
+    document.getElementById('mergeSourceTable').innerHTML = mergeOptions;
+    document.getElementById('mergeTargetTable').innerHTML = mergeOptions;
+    
     document.getElementById('tableManagementList').innerHTML = allTables.map(t => `
         <div class="list-item">
             <div class="list-item-info">
@@ -539,5 +546,51 @@ async function deleteTable(id) {
 }
 
 async function renameTable() {
-    alert('Masa yeniden adlandırma özelliği yakında eklenecek');
+    const table_id = parseInt(document.getElementById('renameTableSelect').value);
+    const name = document.getElementById('renameTableName').value;
+    
+    if (!table_id || !name) {
+        alert('Lütfen tüm alanları doldurun');
+        return;
+    }
+    
+    const response = await fetch(`/api/tables/${table_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+    });
+    
+    if (response.ok) {
+        document.getElementById('renameTableName').value = '';
+        await loadTableManagement();
+        await loadTables();
+        alert('Masa ismi değiştirildi');
+    }
+}
+
+async function mergeTables() {
+    const source_id = parseInt(document.getElementById('mergeSourceTable').value);
+    const target_id = parseInt(document.getElementById('mergeTargetTable').value);
+    
+    if (source_id === target_id) {
+        alert('Farklı masalar seçin');
+        return;
+    }
+    
+    if (!confirm('Bu masaları birleştirmek istediğinizden emin misiniz?')) return;
+    
+    const response = await fetch(`/api/tables/${source_id}/merge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_table_id: target_id })
+    });
+    
+    const data = await response.json();
+    if (response.ok) {
+        alert(data.message || 'Masalar birleştirildi');
+        await loadTableManagement();
+        await loadTables();
+    } else {
+        alert(data.error || 'Birleştirme başarısız');
+    }
 }

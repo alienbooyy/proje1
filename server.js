@@ -157,6 +157,81 @@ app.delete("/api/tables/:id", (req, res) => {
   });
 });
 
+app.put("/api/tables/:id", (req, res) => {
+  const { name } = req.body || {};
+  if (!name) return res.status(400).json({ error: "Masa adı gerekli" });
+  db.run("UPDATE tables SET name = ? WHERE id = ?", [name, req.params.id], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ ok: true });
+  });
+});
+
+app.post("/api/tables/:id/merge", (req, res) => {
+  const { target_table_id } = req.body || {};
+  if (!target_table_id) return res.status(400).json({ error: "Hedef masa gerekli" });
+  
+  // Get source table order
+  const sourceTableId = req.params.id;
+  db.get(
+    "SELECT * FROM orders WHERE table_id = ? AND status = 'open'",
+    [sourceTableId],
+    (err, sourceOrder) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!sourceOrder) return res.status(404).json({ error: "Kaynak masada açık sipariş yok" });
+      
+      // Get or create target order
+      db.get(
+        "SELECT * FROM orders WHERE table_id = ? AND status = 'open'",
+        [target_table_id],
+        (err2, targetOrder) => {
+          if (err2) return res.status(500).json({ error: err2.message });
+          
+          if (targetOrder) {
+            // Move all items from source to target
+            db.run(
+              "UPDATE order_items SET order_id = ? WHERE order_id = ?",
+              [targetOrder.id, sourceOrder.id],
+              (err3) => {
+                if (err3) return res.status(500).json({ error: err3.message });
+                
+                // Update target order total
+                db.run(
+                  "UPDATE orders SET total = total + ? WHERE id = ?",
+                  [sourceOrder.total, targetOrder.id],
+                  (err4) => {
+                    if (err4) return res.status(500).json({ error: err4.message });
+                    
+                    // Close source order
+                    db.run(
+                      "UPDATE orders SET status = 'merged', closed_at = ? WHERE id = ?",
+                      [now(), sourceOrder.id],
+                      (err5) => {
+                        if (err5) return res.status(500).json({ error: err5.message });
+                        res.json({ ok: true, message: "Masalar birleştirildi" });
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          } else {
+            // No target order, just move the source order to target table
+            db.run(
+              "UPDATE orders SET table_id = ? WHERE id = ?",
+              [target_table_id, sourceOrder.id],
+              (err3) => {
+                if (err3) return res.status(500).json({ error: err3.message });
+                res.json({ ok: true, message: "Sipariş taşındı" });
+              }
+            );
+          }
+        }
+      );
+    }
+  );
+});
+
+
 app.get("/api/products", (_req, res) => {
   db.all("SELECT * FROM products WHERE active = 1 ORDER BY name ASC", [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
