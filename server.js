@@ -104,10 +104,31 @@ db.serialize(() => {
       FOREIGN KEY(order_id) REFERENCES orders(id)
     )`
   );
+
+  db.run(
+    `CREATE TABLE IF NOT EXISTS activity_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      action TEXT NOT NULL,
+      details TEXT,
+      created_at TEXT NOT NULL
+    )`
+  );
 });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+// Activity logging helper
+function logActivity(action, details = null) {
+  const logDetails = details ? JSON.stringify(details) : null;
+  db.run(
+    "INSERT INTO activity_logs (action, details, created_at) VALUES (?, ?, ?)",
+    [action, logDetails, now()],
+    (err) => {
+      if (err) console.error("Activity log error:", err.message);
+    }
+  );
+}
 
 const now = () => new Date().toISOString();
 
@@ -145,6 +166,7 @@ app.post("/api/tables", (req, res) => {
     [name, now()],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
+      logActivity("table_created", { id: this.lastID, name });
       res.json({ id: this.lastID, name });
     }
   );
@@ -247,6 +269,7 @@ app.post("/api/products", (req, res) => {
     [name, price, now()],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
+      logActivity("product_created", { id: this.lastID, name, price });
       res.json({ id: this.lastID, name, price });
     }
   );
@@ -364,6 +387,7 @@ app.post("/api/orders/:id/payments", (req, res) => {
     [req.params.id, method, amount, now()],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
+      logActivity("payment_received", { order_id: req.params.id, method, amount });
       res.json({ id: this.lastID });
     }
   );
@@ -375,6 +399,7 @@ app.post("/api/orders/:id/close", (req, res) => {
     [now(), req.params.id],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
+      logActivity("order_closed", { order_id: req.params.id });
       res.json({ ok: true });
     }
   );
@@ -501,6 +526,19 @@ app.post("/api/stocks", (req, res) => {
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ ok: true });
+    }
+  );
+});
+
+// Activity logs endpoint
+app.get("/api/logs", (req, res) => {
+  const limit = parseInt(req.query.limit) || 100;
+  db.all(
+    "SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT ?",
+    [limit],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
     }
   );
 });
