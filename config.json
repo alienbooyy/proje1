@@ -1,0 +1,16 @@
+{
+  "adminPassword": "admin123",
+  "printers": {
+    "kitchen": {
+      "enabled": false,
+      "port": "/dev/usb/lp0",
+      "name": "Kitchen Printer"
+    },
+    "bakery": {
+      "enabled": false,
+      "port": "/dev/usb/lp1",
+      "name": "Bakery Printer"
+    }
+  },
+  "serverPort": 3000
+}
