@@ -14,6 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Section navigation
 function showSection(sectionId, event) {
+    // Prevent non-admin users from accessing admin sections
+    const adminOnlySections = ['products', 'inventory', 'recipes', 'reports', 'analytics', 'tableManagement'];
+    if (!isAdmin && adminOnlySections.includes(sectionId)) {
+        alert('Bu bölüme erişmek için admin girişi yapmalısınız');
+        return;
+    }
+    
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     
@@ -89,10 +96,22 @@ function closeLoginModal() {
 }
 
 function updateAdminSections() {
+    // Update admin form sections
     const sections = document.querySelectorAll('.admin-section');
     sections.forEach(s => {
         s.style.display = isAdmin ? 'block' : 'none';
     });
+    
+    // Update admin-only navigation buttons
+    const adminNavButtons = document.querySelectorAll('.nav-btn.admin-only');
+    adminNavButtons.forEach(btn => {
+        btn.style.display = isAdmin ? '' : 'none';
+    });
+    
+    // If logging out, return to tables view
+    if (!isAdmin) {
+        showSection('tables');
+    }
 }
 
 // Tables
