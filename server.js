@@ -4,6 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
+const ExcelJS = require("exceljs");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -614,7 +615,6 @@ app.get("/api/reports/export", async (req, res) => {
   if (!from || !to) return res.status(400).json({ error: "from ve to gerekli" });
   
   try {
-    const ExcelJS = require('exceljs');
     const workbook = new ExcelJS.Workbook();
     
     // Summary sheet
