@@ -11,6 +11,22 @@ npm run build
 
 This will create `proje1-pos.exe` in the `dist/` directory.
 
+## Quick Deployment Package
+
+For a quick deployment package ready for distribution:
+
+```bash
+./create-package.sh
+```
+
+This script will:
+1. Build the executable if not present
+2. Create a deployment folder with all necessary files
+3. Include Turkish user instructions (KULLANIM.txt)
+4. Create a zip file (e.g., `proje1-pos-v0.1.0.zip`)
+
+The resulting zip file (~23MB) can be directly distributed to end users.
+
 ## Deployment Package
 
 For deployment to end users, create a folder with the following structure:

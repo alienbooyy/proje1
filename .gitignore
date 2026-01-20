@@ -7,3 +7,5 @@ npm-debug.log
 package-lock.json
 dist/
 *.exe
+proje1-pos-package/
+proje1-pos-v*.zip
