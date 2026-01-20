@@ -46,6 +46,26 @@ npm start
 
 Uygulama varsayılan olarak `http://localhost:3000` adresinde çalışır.
 
+## 📦 Yürütülebilir Dosya (Executable) Oluşturma
+
+Teknik olmayan kullanıcılar için Windows çalıştırılabilir (.exe) dosyası oluşturabilirsiniz:
+
+```bash
+# Bağımlılıkları yükle
+npm install
+
+# Executable oluştur
+npm run build
+```
+
+Bu komut `dist/proje1-pos.exe` dosyasını oluşturacaktır. Kullanıcılar bu .exe dosyasına çift tıklayarak uygulamayı başlatabilir.
+
+**Not:** 
+- Executable dosyası tüm bağımlılıkları içerir ve Node.js kurulumuna gerek yoktur
+- İlk çalıştırmada `data/` klasörü ve veritabanı otomatik oluşturulur
+- `config.json` dosyası executable ile aynı dizinde olmalıdır
+- `public/` klasörü executable ile aynı dizinde olmalıdır
+
 ## 🔧 Yapılandırma
 
 `config.json` dosyasını düzenleyerek şunları yapılandırabilirsiniz:
