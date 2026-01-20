@@ -34,8 +34,8 @@ if (fs.existsSync(exePath)) {
   const sizeInMB = (stats.size / 1024 / 1024).toFixed(2);
   console.log(`  📦 pos-system.exe: ${sizeInMB} MB`);
   
-  if (stats.size < 1024 * 1024) {
-    console.log('  ⚠️  Warning: Executable seems too small (< 1MB)');
+  if (stats.size < 30 * 1024 * 1024) {
+    console.log('  ⚠️  Warning: Executable seems too small (< 30MB)');
     allValid = false;
   }
 }

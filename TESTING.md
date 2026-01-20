@@ -137,8 +137,8 @@ Monitor during operation:
 
 - Verify admin panel requires password
 - Test with incorrect password (should be rejected)
-- Verify SQL injection protection (try: `'; DROP TABLE--`)
-- Verify XSS protection in text inputs
+- Test input validation in text fields
+- Note: SQL injection protection is handled by parameterized queries in the backend
 
 ## Regression Testing
 
