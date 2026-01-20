@@ -9,6 +9,7 @@
     "dev": "node server.js",
     "build": "pkg . --targets node18-win-x64 --output dist/pos-system.exe",
     "package": "npm run build && node scripts/package.js",
+    "verify": "node scripts/verify-dist.js",
     "clean": "rm -rf dist/ node_modules/"
   },
   "dependencies": {
