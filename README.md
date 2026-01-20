@@ -58,7 +58,7 @@ npm install
 npm run build
 ```
 
-Bu komut `proje1-pos.exe` dosyasını oluşturacaktır. Kullanıcılar bu .exe dosyasına çift tıklayarak uygulamayı başlatabilir.
+Bu komut `dist/proje1-pos.exe` dosyasını oluşturacaktır. Kullanıcılar bu .exe dosyasına çift tıklayarak uygulamayı başlatabilir.
 
 **Not:** 
 - Executable dosyası tüm bağımlılıkları içerir ve Node.js kurulumuna gerek yoktur
