@@ -7,6 +7,7 @@ const distDir = path.join(__dirname, '..', 'dist');
 const publicDir = path.join(__dirname, '..', 'public');
 const configFile = path.join(__dirname, '..', 'config.json');
 const usageReadme = path.join(__dirname, '..', 'USAGE_README.txt');
+const startBat = path.join(__dirname, '..', 'start.bat');
 
 console.log('📦 Packaging POS System for distribution...');
 
@@ -41,10 +42,16 @@ console.log('📄 Copying README...');
 fs.copyFileSync(usageReadme, path.join(distDir, 'README.txt'));
 console.log('✓ README.txt copied');
 
+// Copy start.bat
+console.log('📄 Copying start.bat...');
+fs.copyFileSync(startBat, path.join(distDir, 'start.bat'));
+console.log('✓ start.bat copied');
+
 console.log('\n✅ Packaging complete!');
 console.log('\nDistribution package ready in: dist/');
 console.log('\nContents:');
 console.log('  - pos-system.exe (main executable)');
+console.log('  - start.bat (quick start launcher)');
 console.log('  - config.json (configuration)');
 console.log('  - public/ (web interface)');
 console.log('  - README.txt (user guide)');

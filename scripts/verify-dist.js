@@ -9,6 +9,7 @@ console.log('🔍 Verifying distribution package...\n');
 
 const requiredFiles = [
   'pos-system.exe',
+  'start.bat',
   'config.json',
   'README.txt',
   'public/index.html',

@@ -3,7 +3,9 @@
 ## Installation
 
 1. Extract this ZIP file to a folder on your computer
-2. Double-click `pos-system.exe` to start the server
+2. You have two options to start the server:
+   - **Easy Way**: Double-click `start.bat` (opens with helpful messages)
+   - **Direct Way**: Double-click `pos-system.exe`
 3. Wait for the message "POS server running on http://localhost:3000"
 4. Open your web browser and go to: http://localhost:3000
 
