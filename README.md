@@ -28,13 +28,48 @@ Yerel ağda çalışan, tam özellikli restoran POS sistemi.
 - USB üzerinden doğrudan yazdırma
 - Sipariş fişi otomatik oluşturma
 
+## 💻 Sistem Gereksinimleri
+
+### Windows Executable İçin
+- **İşletim Sistemi**: Windows 7 veya üstü (64-bit)
+- **Disk Alanı**: En az 100MB boş alan
+- **RAM**: En az 512MB
+- **Ağ**: Yerel ağ erişimi (isteğe bağlı, çoklu cihaz kullanımı için)
+- **Ek Yazılım**: Gerekli değil (Node.js dahildir)
+
+### Geliştirici Kurulumu İçin
+- **İşletim Sistemi**: Windows, Linux, veya macOS
+- **Node.js**: v14 veya üstü
+- **npm**: v6 veya üstü
+- **Disk Alanı**: En az 200MB (node_modules dahil)
+
 ## 🚀 Kurulum
 
-### Gereksinimler
+### Yöntem 1: Windows Executable (Önerilen - Kolay Kullanım)
+
+En basit kullanım için hazır `.exe` dosyasını kullanın:
+
+1. **Executable'ı İndirin**: Releases sayfasından `pos-system-dist.zip` dosyasını indirin
+2. **Çıkartın**: ZIP dosyasını bir klasöre çıkartın
+3. **Çalıştırın**: `pos-system.exe` dosyasına çift tıklayın
+4. **Tarayıcı**: `http://localhost:3000` adresini açın
+
+**Avantajlar:**
+- Node.js kurulumu gerektirmez
+- Tek tıkla çalışır
+- Non-teknik kullanıcılar için ideal
+
+**Detaylı kullanım talimatları için dağıtım paketindeki `README.txt` dosyasına bakın.**
+
+### Yöntem 2: Geliştirici Kurulumu (Kaynak Koddan)
+
+Geliştirme veya özelleştirme için:
+
+**Gereksinimler:**
 - Node.js v14+
 - npm veya yarn
 
-### Adımlar
+**Adımlar:**
 
 ```bash
 # Bağımlılıkları yükle
@@ -45,6 +80,25 @@ npm start
 ```
 
 Uygulama varsayılan olarak `http://localhost:3000` adresinde çalışır.
+
+### Yöntem 3: Executable'ı Kendiniz Oluşturun
+
+Executable'ı kaynak koddan kendiniz oluşturabilirsiniz:
+
+```bash
+# Bağımlılıkları yükle
+npm install
+
+# Executable oluştur
+npm run build
+
+# Dağıtım paketi hazırla
+npm run package
+```
+
+Bu, `dist/` klasöründe tüm gerekli dosyaları içeren dağıtıma hazır bir paket oluşturur.
+
+**Detaylı build talimatları için `BUILD_README.md` dosyasına bakın.**
 
 ## 🔧 Yapılandırma
 
