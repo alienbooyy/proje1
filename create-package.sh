@@ -72,7 +72,8 @@ Bu yazılım tamamen offline çalışır ve internet bağlantısı gerektirmez.
 EOF
 
 # Create zip file
-ZIP_NAME="proje1-pos-v$(node -p "require('./package.json').version").zip"
+VERSION=$(grep -oP '"version":\s*"\K[^"]+' package.json || echo "0.1.0")
+ZIP_NAME="proje1-pos-v${VERSION}.zip"
 echo "Creating zip file: $ZIP_NAME"
 
 if command -v zip &> /dev/null; then

@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "main": "server.js",
-  "bin": "server.js",
+  "bin": {
+    "proje1-pos": "server.js"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "pkg . --targets node18-win-x64 --output dist/proje1-pos.exe"
+    "build": "pkg . --output dist/proje1-pos.exe"
   },
   "dependencies": {
     "exceljs": "^4.3.0",
